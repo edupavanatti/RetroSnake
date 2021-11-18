@@ -24,7 +24,8 @@ public class MainGamePresenter
 
     public void OnExitButtonPressed()
     {
-        Application.Quit();
+        if (Application.isEditor) UnityEditor.EditorApplication.isPlaying = false;
+        else Application.Quit();
     }
 
     public void OnPlayerFoodEaten()
@@ -42,5 +43,15 @@ public class MainGamePresenter
     public void OnEnemyFoodEaten()
     {
         _view.SpawnFood();
+    }
+
+    public void OnLifeGained(int extraLives)
+    {
+        _view.UpdateExtraBlocksUI(extraLives, true);
+    }
+
+    public void OnLifeLost(int extraLives)
+    {
+        _view.UpdateExtraBlocksUI(extraLives, false);
     }
 }

@@ -10,8 +10,7 @@ public class PlayerSnakeBehavior : MonoBehaviour
     private readonly Vector3 SpawnPosition = Vector3.zero;
 
     private const string FoodTag = "Food";
-    private const string HorizontalInput = "Horizontal";
-    private const string VerticalInput = "Vertical";
+    private const string SnakeTag = "Snake";
 
     private const float NormalFoodTime = 0.02f;
     private const float SpecialFoodTime = -0.04f;
@@ -23,15 +22,16 @@ public class PlayerSnakeBehavior : MonoBehaviour
     private Vector3 _direction;
     private Vector3 _lastPosition;
 
+    private FoodType _currentFoodType;
     private float _timeToMove = DefaultTimeToMove;
-    private bool _isMovingVertically;
     private bool _canMove;
-
-    private bool _isSpecialFoodSpawned;
-    public bool IsSpecialFoodSpawned { set => _isSpecialFoodSpawned = value; }
+    private int _extraBlocks;
+    private int _moveCount;
 
     private Action FoodEaten;
     private Action SnakeDied;
+    private Action<int> LifeGained;
+    private Action<int> LifeLost;
 
     private void OnEnable()
     {
@@ -43,32 +43,43 @@ public class PlayerSnakeBehavior : MonoBehaviour
         StartCoroutine(MoveSnake());
     }
 
-    private void FixedUpdate()
+    private void Update()
     {
-        var horizontalInput = Input.GetAxisRaw(HorizontalInput);
-        var verticalInput = Input.GetAxisRaw(VerticalInput);
-
+        // Controls the snake movimentation
         if (_canMove)
         {
-            if (horizontalInput != 0 && verticalInput == 0 && _isMovingVertically)
+            if(Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.A))
             {
+                if (_direction.Equals(Vector3.right)) _direction = Vector3.up;
+                else if (_direction.Equals(Vector3.left)) _direction = Vector3.down;
+                else if (_direction.Equals(Vector3.up) || _direction.Equals(Vector3.down))
+                    _direction = Vector3.left;
+                
+                _moveCount = 0;
                 _canMove = false;
-                _direction = new Vector2(horizontalInput, 0);
-                _isMovingVertically = false;
             }
-            else if (verticalInput != 0 && horizontalInput == 0 && !_isMovingVertically)
+            else if (Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.D))
             {
+                if (_direction.Equals(Vector3.right)) _direction = Vector3.down;
+                else if (_direction.Equals(Vector3.left)) _direction = Vector3.up;
+                else if (_direction.Equals(Vector3.up) || _direction.Equals(Vector3.down))
+                    _direction = Vector3.right;
+                
+                _moveCount = 0;
                 _canMove = false;
-                _direction = new Vector2(0, verticalInput);
-                _isMovingVertically = true;
             }
         }
+    }
+
+    public void SetFoodTarget(Transform food)
+    {
+        _currentFoodType = food.GetComponent<SnakeFood>().foodType;
     }
 
     public void SpawnSnake()
     {
         _timeToMove = DefaultTimeToMove;
-        _isMovingVertically = false;
+        _moveCount = 0;
         gameObject.transform.position = SpawnPosition;
         gameObject.SetActive(true);
     }
@@ -90,13 +101,36 @@ public class PlayerSnakeBehavior : MonoBehaviour
         {
             Destroy(collider.gameObject);
             AddNewSegment(snakeBody, _lastPosition);
-            _timeToMove += _isSpecialFoodSpawned ? SpecialFoodTime : NormalFoodTime;
+            _timeToMove += _currentFoodType == FoodType.SpeedFood ?
+                SpecialFoodTime : NormalFoodTime;
+
+            // Adds an extra life when eating the related food
+            if (_currentFoodType == FoodType.LifeFood && _extraBlocks < 3)
+            {
+                LifeGained?.Invoke(_extraBlocks);
+                _extraBlocks++;
+            }
+
             FoodEaten?.Invoke();
+        }
+        else if (collider.CompareTag(SnakeTag))
+        {
+            if (_extraBlocks > 0)
+            {
+                _extraBlocks--;
+                var lastSegment = SnakeSegments.Last();
+                SnakeSegments.Remove(lastSegment);
+                Destroy(lastSegment.gameObject);
+                LifeLost?.Invoke(_extraBlocks);
+            }
+            else
+            {
+                KillSnake();
+            }
         }
         else
         {
-            DestroySnake();
-            SnakeDied?.Invoke();
+            KillSnake();
         }
     }
 
@@ -111,7 +145,8 @@ public class PlayerSnakeBehavior : MonoBehaviour
         }
 
         yield return new WaitForSeconds(_timeToMove);
-        _canMove = true;
+        _moveCount++;
+        if(_moveCount >= 2) _canMove = true;
         StartCoroutine(MoveSnake());
     }
 
@@ -122,6 +157,14 @@ public class PlayerSnakeBehavior : MonoBehaviour
         newSegment.position = position;
     }
 
+    private void KillSnake()
+    {
+        DestroySnake();
+        _extraBlocks = 0;
+        LifeLost.Invoke(_extraBlocks);
+        SnakeDied?.Invoke();
+    }
+
     public void AddFoodEatenListener(Action action)
     {
         FoodEaten = action;
@@ -130,5 +173,15 @@ public class PlayerSnakeBehavior : MonoBehaviour
     public void AddSnakeDiedListener(Action action)
     {
         SnakeDied = action;
+    }
+
+    public void AddLifeGainedListener(Action<int> action)
+    {
+        LifeGained = action;
+    }
+
+    public void AddLifeLostListener(Action<int> action)
+    {
+        LifeLost = action;
     }
 }

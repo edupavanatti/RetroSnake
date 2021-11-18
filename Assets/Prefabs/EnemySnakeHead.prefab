@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 1477249666800733359}
   - component: {fileID: 1477249666800733358}
   m_Layer: 0
-  m_Name: PlayerSnakeHead 1
+  m_Name: EnemySnakeHead
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

@@ -7,8 +7,9 @@ using UnityEngine;
 public class EnemySnakeBehavior : MonoBehaviour
 {
     private readonly List<Transform> SnakeSegments = new List<Transform>();
-    private readonly Vector3 SpawnPosition = new Vector3(-6, -8, 0);
+    private readonly Vector3 SpawnPosition = new Vector3(-20, -10, 0);
 
+    private const string PlayerTag = "Player";
     private const string FoodTag = "Food";
 
     private const float NormalFoodTime = 0.02f;
@@ -18,13 +19,11 @@ public class EnemySnakeBehavior : MonoBehaviour
     [SerializeField] private Transform snakeHead;
     [SerializeField] private Transform snakeBody;
 
+    private Transform _spawnedFood;
+    private FoodType _currentFoodType;
     private Vector3 _direction;
     private Vector3 _lastPosition;
-    private Transform _spawnedFood;
     private float _timeToMove = DefaultTimeToMove;
-
-    private bool _isSpecialFoodSpawned;
-    public bool IsSpecialFoodSpawned { set => _isSpecialFoodSpawned = value; }
 
     private Action FoodEaten;
 
@@ -42,16 +41,21 @@ public class EnemySnakeBehavior : MonoBehaviour
         if (_spawnedFood)
         {
             var foodPosition = _spawnedFood.position;
-            if (transform.position.x < foodPosition.x) _direction = Vector2.right;
-            else if (transform.position.x > foodPosition.x) _direction = Vector2.left;
-            else if (transform.position.y < foodPosition.y) _direction = Vector2.up;
+            if (transform.position.y < foodPosition.y) _direction = Vector2.up;
             else if (transform.position.y > foodPosition.y) _direction = Vector2.down;
+            else if (transform.position.x < foodPosition.x) _direction = Vector2.right;
+            else if (transform.position.x > foodPosition.x) _direction = Vector2.left;
+        }
+        else
+        {
+            _direction = Vector2.right;
         }
     }
 
     public void SetFoodTarget(Transform food)
     {
         _spawnedFood = food;
+        _currentFoodType = food.GetComponent<SnakeFood>().foodType;
     }
 
     public void SpawnSnake()
@@ -78,10 +82,11 @@ public class EnemySnakeBehavior : MonoBehaviour
         {
             Destroy(collider.gameObject);
             AddNewSegment(snakeBody, _lastPosition);
-            _timeToMove += _isSpecialFoodSpawned ? SpecialFoodTime : NormalFoodTime;
+            _timeToMove += _currentFoodType == FoodType.SpeedFood ?
+                SpecialFoodTime : NormalFoodTime;
             FoodEaten?.Invoke();
         }
-        else
+        else if (!collider.CompareTag(PlayerTag))
         {
             DestroySnake();
             SpawnSnake();
