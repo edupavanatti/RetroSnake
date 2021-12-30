@@ -12,6 +12,7 @@ public class MainGameView : MonoBehaviour
     [SerializeField] private PlayerSnakeBehavior playerSnake;
     [SerializeField] private EnemySnakeBehavior enemySnake;
     [SerializeField] private Text scoreCounter;
+    [SerializeField] private Text highScoreCounter;
     [SerializeField] private BoxCollider2D spawnArea;
     [SerializeField] private GameObject commonFood;
     [SerializeField] private GameObject speedFood;
@@ -27,9 +28,7 @@ public class MainGameView : MonoBehaviour
     private void Awake()
     {
         _presenter = new MainGamePresenter(this);
-
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
+        _presenter.GetHighScore();
     }
 
     private void Start()
@@ -46,11 +45,13 @@ public class MainGameView : MonoBehaviour
 
         _spawnBounds = spawnArea.bounds;
         spawnArea.gameObject.SetActive(false);
-        startButton.Select();
     }
 
     public void StartGame()
     {
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+
         mainMenu.SetActive(false);
         gameOverMenu.SetActive(false);
         blocksUI.SetActive(true);
@@ -63,6 +64,11 @@ public class MainGameView : MonoBehaviour
     public void SetScore(int score)
     {
         scoreCounter.text = $"{score:0000}";
+    }
+
+    public void SetHighScore(int score)
+    {
+        highScoreCounter.text = $"{score:0000}";
     }
 
     public void SpawnFood()
@@ -87,12 +93,15 @@ public class MainGameView : MonoBehaviour
 
     public void EndGame()
     {
+        _presenter.UpdateHighScore();
         playerSnake.DestroySnake();
         enemySnake.DestroySnake();
         Destroy(_spawnedFood.gameObject);
         blocksUI.SetActive(false);
         gameOverMenu.SetActive(true);
-        restartButton.Select();
+
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
     }
 
     public void UpdateExtraBlocksUI(int extraLives, bool wasLifeGained)

@@ -2,6 +2,8 @@ using UnityEngine;
 
 public class MainGamePresenter
 {
+    private const string HighScoreKey = "HighScore";
+
     private MainGameView _view;
     private int _score;
 
@@ -24,8 +26,7 @@ public class MainGamePresenter
 
     public void OnExitButtonPressed()
     {
-        if (Application.isEditor) UnityEditor.EditorApplication.isPlaying = false;
-        else Application.Quit();
+        Application.Quit();
     }
 
     public void OnPlayerFoodEaten()
@@ -53,5 +54,29 @@ public class MainGamePresenter
     public void OnLifeLost(int extraLives)
     {
         _view.UpdateExtraBlocksUI(extraLives, false);
+    }
+
+    public void GetHighScore()
+    {
+        if (PlayerPrefs.HasKey(HighScoreKey))
+        {
+            var highScore = PlayerPrefs.GetInt(HighScoreKey);
+            _view.SetHighScore(highScore);
+        }
+        else
+        {
+            PlayerPrefs.SetInt(HighScoreKey, _score);
+        }
+    }
+
+    public void UpdateHighScore()
+    {
+        var highScore = PlayerPrefs.GetInt(HighScoreKey);
+
+        if (_score > highScore)
+        {
+            PlayerPrefs.SetInt(HighScoreKey, _score);
+            _view.SetHighScore(_score);
+        }
     }
 }

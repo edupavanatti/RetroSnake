@@ -11,6 +11,8 @@ public class PlayerSnakeBehavior : MonoBehaviour
 
     private const string FoodTag = "Food";
     private const string SnakeTag = "Snake";
+    private const string HorizontalInput = "Horizontal";
+    private const string VerticalInput = "Vertical";
 
     private const float NormalFoodTime = 0.02f;
     private const float SpecialFoodTime = -0.04f;
@@ -24,9 +26,9 @@ public class PlayerSnakeBehavior : MonoBehaviour
 
     private FoodType _currentFoodType;
     private float _timeToMove = DefaultTimeToMove;
+    private bool _isMovingVertically;
     private bool _canMove;
     private int _extraBlocks;
-    private int _moveCount;
 
     private Action FoodEaten;
     private Action SnakeDied;
@@ -43,30 +45,25 @@ public class PlayerSnakeBehavior : MonoBehaviour
         StartCoroutine(MoveSnake());
     }
 
-    private void Update()
+    private void FixedUpdate()
     {
+        var horizontalInput = Input.GetAxisRaw(HorizontalInput);
+        var verticalInput = Input.GetAxisRaw(VerticalInput);
+
         // Controls the snake movimentation
         if (_canMove)
         {
-            if(Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.A))
+            if (horizontalInput != 0 && verticalInput == 0 && _isMovingVertically)
             {
-                if (_direction.Equals(Vector3.right)) _direction = Vector3.up;
-                else if (_direction.Equals(Vector3.left)) _direction = Vector3.down;
-                else if (_direction.Equals(Vector3.up) || _direction.Equals(Vector3.down))
-                    _direction = Vector3.left;
-                
-                _moveCount = 0;
                 _canMove = false;
+                _direction = new Vector2(horizontalInput, 0);
+                _isMovingVertically = false;
             }
-            else if (Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.D))
+            else if (verticalInput != 0 && horizontalInput == 0 && !_isMovingVertically)
             {
-                if (_direction.Equals(Vector3.right)) _direction = Vector3.down;
-                else if (_direction.Equals(Vector3.left)) _direction = Vector3.up;
-                else if (_direction.Equals(Vector3.up) || _direction.Equals(Vector3.down))
-                    _direction = Vector3.right;
-                
-                _moveCount = 0;
                 _canMove = false;
+                _direction = new Vector2(0, verticalInput);
+                _isMovingVertically = true;
             }
         }
     }
@@ -79,7 +76,7 @@ public class PlayerSnakeBehavior : MonoBehaviour
     public void SpawnSnake()
     {
         _timeToMove = DefaultTimeToMove;
-        _moveCount = 0;
+        _isMovingVertically = false;
         gameObject.transform.position = SpawnPosition;
         gameObject.SetActive(true);
     }
@@ -145,8 +142,7 @@ public class PlayerSnakeBehavior : MonoBehaviour
         }
 
         yield return new WaitForSeconds(_timeToMove);
-        _moveCount++;
-        if(_moveCount >= 2) _canMove = true;
+        _canMove = true;
         StartCoroutine(MoveSnake());
     }
 
